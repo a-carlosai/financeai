@@ -157,7 +157,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 <div class="page active" id="page-dash">
   <div class="ph">
     <div><div class="pt">Dashboard</div><div class="ps" id="ddate"></div></div>
-    <button class="btn bp" onclick="go('comp')">📎 Ler Comprovante</button>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="display:flex;align-items:center;gap:0;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;overflow:hidden">
+        <button onclick="changeMonth(-1)" style="background:none;border:none;color:var(--mut);cursor:pointer;padding:8px 13px;font-size:16px;transition:all .15s" onmouseover="this.style.color='var(--txt)'" onmouseout="this.style.color='var(--mut)'">‹</button>
+        <span id="month-label" style="font-size:13px;font-weight:600;color:var(--txt);min-width:110px;text-align:center;padding:0 4px"></span>
+        <button onclick="changeMonth(1)" id="btn-next-month" style="background:none;border:none;color:var(--mut);cursor:pointer;padding:8px 13px;font-size:16px;transition:all .15s" onmouseover="this.style.color='var(--txt)'" onmouseout="this.style.color='var(--mut)'">›</button>
+      </div>
+      <button class="btn bp" onclick="go('comp')">📎 Ler Comprovante</button>
+    </div>
   </div>
   <div class="srow">
     <div class="sc g"><div class="si" style="background:var(--grnd)">💰</div><div class="sl">Saldo do Mês</div><div class="sv p" id="s1">R$ 0,00</div><div class="ss">Receitas − Despesas</div></div>
@@ -191,16 +198,32 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
   <div class="ph">
     <div><div class="pt">📎 Ler Comprovante <span class="aitag">IA</span></div><div class="ps">Envie foto ou PDF — extração automática de dados</div></div>
   </div>
+  <input type="file" id="fin" accept="image/*,.pdf" onchange="handleFile(event)" style="display:none">
+  <input type="file" id="fin-folder" accept="image/*,.pdf" multiple webkitdirectory onchange="handleFolder(event)" style="display:none">
   <div class="uz" id="uz" onclick="document.getElementById('fin').click()">
-    <input type="file" id="fin" accept="image/*,.pdf" onchange="handleFile(event)">
     <div class="ue">🖼️</div><div class="ut">Arraste ou clique para enviar</div>
     <div class="us">Imagem (JPG, PNG) ou PDF</div>
     <div class="cch">
       <span class="cchp px">⚡ PIX</span><span class="cchp bl">🧾 Boleto</span>
       <span class="cchp ca">💳 Cartão</span><span class="cchp nf">📄 Nota Fiscal</span>
     </div>
+    <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--bdr)">
+      <button onclick="event.stopPropagation();document.getElementById('fin-folder').click()" class="btn bg" style="font-size:12.5px;padding:7px 16px">📁 Carregar Pasta com Comprovantes</button>
+    </div>
   </div>
-  <div class="ld" id="ld"><div class="spin"></div><div class="ll">🤖 IA analisando seu comprovante…</div></div>
+  <!-- FILA DE PROCESSAMENTO -->
+  <div id="queue-box" style="display:none;background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:22px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px">📁 Processando Comprovantes</div>
+      <div id="queue-counter" style="font-size:13px;color:var(--mut)"></div>
+    </div>
+    <div style="height:6px;background:var(--bdr);border-radius:99px;margin-bottom:14px;overflow:hidden">
+      <div id="queue-bar" style="height:100%;background:var(--acc);border-radius:99px;transition:width .4s ease;width:0%"></div>
+    </div>
+    <div id="queue-current" style="font-size:13px;color:var(--mut);margin-bottom:14px"></div>
+    <div id="queue-log" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+  </div>
+  <div class="ld" id="ld"><div class="spin"></div><div class="ll" id="ldtxt">🤖 IA analisando seu comprovante…</div></div>
   <div class="rp" id="rp">
     <img id="rprev" class="rprev" style="display:none">
     <div class="rt"><div class="rck">✅</div><div><div class="rtt">Comprovante lido com sucesso!</div><div class="rts">Verifique os dados e confirme para salvar</div></div></div>
@@ -287,6 +310,30 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 let txs=JSON.parse(localStorage.getItem('fi_txs')||'[]');
 let metas=JSON.parse(localStorage.getItem('fi_metas')||'[]');
 let pending=null,cf='todos',dc=null;
+// mês selecionado no dashboard
+const _now=new Date();
+let selM=_now.getMonth(),selY=_now.getFullYear();
+
+function changeMonth(dir){
+  selM+=dir;
+  if(selM>11){selM=0;selY++;}
+  if(selM<0){selM=11;selY--;}
+  const isCurrentMonth=selM===_now.getMonth()&&selY===_now.getFullYear();
+  document.getElementById('btn-next-month').style.opacity=isCurrentMonth?'0.3':'1';
+  document.getElementById('btn-next-month').style.pointerEvents=isCurrentMonth?'none':'auto';
+  updMonthLabel();updS();rDash();rChart();rBD();
+}
+
+function updMonthLabel(){
+  const d=new Date(selY,selM,1);
+  const isCurrentMonth=selM===_now.getMonth()&&selY===_now.getFullYear();
+  document.getElementById('month-label').textContent=
+    isCurrentMonth?'Este mês':d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+}
+
+function txsDoMes(){
+  return txs.filter(t=>{const d=new Date(t.data);return d.getMonth()===selM&&d.getFullYear()===selY;});
+}
 
 const CATS={'Alimentação':{em:'🍔',c:'#ff6a9e'},'Transporte':{em:'🚗',c:'#38b6ff'},'Moradia':{em:'🏠',c:'#ffb800'},'Saúde':{em:'💊',c:'#00d4a0'},'Lazer':{em:'🎮',c:'#635bff'},'Educação':{em:'📚',c:'#ff9f6a'},'Trabalho':{em:'💼',c:'#6adfff'},'Receita':{em:'💰',c:'#00d4a0'},'Outros':{em:'📦',c:'#5a5a72'}};
 const CM={pix:{l:'PIX',e:'⚡',c:'var(--grn)',b:'var(--grnd)'},boleto:{l:'Boleto',e:'🧾',c:'var(--yel)',b:'var(--yeld)'},cartao:{l:'Cartão',e:'💳',c:'var(--acc)',b:'var(--accg)'},nota_fiscal:{l:'NF',e:'📄',c:'var(--blu)',b:'var(--blud)'},manual:{l:'Manual',e:'✍️',c:'var(--mut)',b:'var(--surf2)'},transferencia:{l:'Transf.',e:'🏦',c:'var(--mut)',b:'var(--surf2)'},outro:{l:'Outro',e:'📄',c:'var(--mut)',b:'var(--surf2)'}};
@@ -296,7 +343,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const d=new Date();
   document.getElementById('ddate').textContent=d.toLocaleDateString('pt-BR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('mf').value=d.toISOString().split('T')[0];
-  if(!localStorage.getItem('fi_apikey')){setTimeout(()=>go('config'),50);}else{update();}setupDrag();
+  updMonthLabel();document.getElementById('btn-next-month').style.opacity='0.3';document.getElementById('btn-next-month').style.pointerEvents='none';if(!localStorage.getItem('fi_apikey')){setTimeout(()=>go('config'),50);}else{update();}setupDrag();
   document.querySelectorAll('.mw').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')}));
 });
 
@@ -344,6 +391,59 @@ async function proc(file){
 }
 
 const toB64=f=>new Promise((r,j)=>{const rd=new FileReader();rd.onload=()=>r(rd.result.split(',')[1]);rd.onerror=()=>j(new Error('Falha'));rd.readAsDataURL(f)});
+
+// ── FILA DE PASTA ──
+let queueRunning=false;
+
+async function handleFolder(e){
+  const files=[...e.target.files].filter(f=>f.type.startsWith('image/')||f.type==='application/pdf');
+  if(!files.length){toast('⚠️ Nenhum arquivo suportado na pasta');return;}
+  if(!localStorage.getItem('fi_apikey')){go('config');return;}
+  document.getElementById('uz').style.display='none';
+  document.getElementById('queue-box').style.display='block';
+  const log=document.getElementById('queue-log');
+  const bar=document.getElementById('queue-bar');
+  const counter=document.getElementById('queue-counter');
+  const cur=document.getElementById('queue-current');
+  log.innerHTML='';
+  let ok=0,fail=0;
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    const pct=Math.round(((i)/files.length)*100);
+    bar.style.width=pct+'%';
+    counter.textContent=(i+1)+' / '+files.length+' arquivos';
+    cur.textContent='🔄 Processando: '+f.name;
+    const row=document.createElement('div');
+    row.style.cssText='font-size:12px;padding:6px 10px;border-radius:7px;background:var(--surf2);color:var(--mut);display:flex;align-items:center;gap:8px';
+    row.innerHTML='<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f.name+'</span><span class="status-dot">⏳</span>';
+    log.appendChild(row);log.scrollTop=log.scrollHeight;
+    try{
+      const b64=await toB64(f);
+      const res=await callAI(b64,f.type);
+      const parts=(res.data||'01/01/2025').split('/');
+      const ds=parts.length===3?parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0'):new Date().toISOString().split('T')[0];
+      txs.push({id:Date.now()+i,descricao:res.descricao||f.name,valor:parseFloat(res.valor)||0,tipo:res.tipo_movimento||'saida',categoria:res.categoria_sugerida||'Outros',comprovante:res.tipo||'outro',data:ds,origem:'ia'});
+      save();
+      row.style.background='rgba(0,212,160,.08)';row.style.color='var(--grn)';
+      row.querySelector('.status-dot').textContent='✅';ok++;
+    }catch(err){
+      row.style.background='rgba(255,69,96,.08)';row.style.color='var(--red)';
+      row.querySelector('.status-dot').textContent='❌';
+      row.title=err.message;fail++;
+    }
+    await new Promise(r=>setTimeout(r,300));
+  }
+  bar.style.width='100%';
+  cur.textContent='✅ Concluído! '+ok+' importados, '+fail+' com erro.';
+  counter.textContent=files.length+' / '+files.length+' arquivos';
+  update();
+  setTimeout(()=>{
+    document.getElementById('queue-box').style.display='none';
+    document.getElementById('uz').style.display='';
+    document.getElementById('fin-folder').value='';
+    toast('✅ Pasta processada: '+ok+' comprovantes importados!');
+  },3000);
+}
 
 async function callAI(b64,mime){
   const key=localStorage.getItem('fi_apikey')||'';
@@ -443,8 +543,7 @@ function save(){localStorage.setItem('fi_txs',JSON.stringify(txs))}
 function update(){updS();rDash();rChart();rCats();renderH();renderMetas();updSide();rBD()}
 
 function updS(){
-  const now=new Date();const m=now.getMonth(),y=now.getFullYear();
-  const mo=txs.filter(t=>{const d=new Date(t.data);return d.getMonth()===m&&d.getFullYear()===y});
+  const mo=txsDoMes();
   const gs=mo.filter(t=>t.tipo==='saida'),rv=mo.filter(t=>t.tipo==='entrada');
   const tg=gs.reduce((s,t)=>s+t.valor,0),tr=rv.reduce((s,t)=>s+t.valor,0),sl=tr-tg;
   document.getElementById('s1').textContent=fmt(sl);document.getElementById('s1').className='sv '+(sl>=0?'p':'n');
@@ -464,7 +563,7 @@ function updSide(){
 function rBD(){
   const types=[{id:'bdpx',k:'pix',e:'⚡',l:'PIX',c:'var(--grn)',b:'var(--grnd)'},{id:'bdbl',k:'boleto',e:'🧾',l:'Boleto',c:'var(--yel)',b:'var(--yeld)'},{id:'bdca',k:'cartao',e:'💳',l:'Cartão',c:'var(--acc)',b:'var(--accg)'},{id:'bdnf',k:'nota_fiscal',e:'📄',l:'Nota Fiscal',c:'var(--blu)',b:'var(--blud)'}];
   types.forEach(t=>{
-    const items=txs.filter(x=>x.comprovante===t.k&&x.tipo==='saida');
+    const items=txsDoMes().filter(x=>x.comprovante===t.k&&x.tipo==='saida');
     const tot=items.reduce((s,x)=>s+x.valor,0);
     document.getElementById(t.id).innerHTML=`<div class="bdi">${t.e}</div><div class="bdl" style="color:${t.c}">${t.l}</div><div class="bdv" style="color:${t.c}">${fmt(tot)}</div><div class="bdn">${items.length} transações</div>`;
     document.getElementById(t.id).style.background=t.b;
@@ -481,8 +580,8 @@ function txH(t,compact=false){
 
 function rDash(){
   const el=document.getElementById('dtxl');
-  const sorted=[...txs].sort((a,b)=>new Date(b.data)-new Date(a.data)).slice(0,8);
-  el.innerHTML=sorted.length?sorted.map(t=>txH(t,true)).join(''):`<div class="empty"><div class="em">🧾</div><div class="et">Nenhuma transação ainda.<br>Leia um comprovante!</div></div>`;
+  const sorted=[...txsDoMes()].sort((a,b)=>new Date(b.data)-new Date(a.data));
+  el.innerHTML=sorted.length?sorted.map(t=>txH(t,true)).join(''):`<div class="empty"><div class="em">🧾</div><div class="et">Nenhuma transação neste mês.</div></div>`;
 }
 
 function renderH(){
@@ -495,7 +594,7 @@ function renderH(){
 }
 
 function rChart(){
-  const gastos=txs.filter(t=>t.tipo==='saida');
+  const gastos=txsDoMes().filter(t=>t.tipo==='saida');
   const total=gastos.reduce((s,t)=>s+t.valor,0);
   document.getElementById('ctotal').textContent=fmt(total);
   const bycat={};gastos.forEach(t=>{bycat[t.categoria]=(bycat[t.categoria]||0)+t.valor});
