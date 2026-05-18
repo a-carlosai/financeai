@@ -358,7 +358,7 @@ Use null para campos nao encontrados.`;
   const res=await fetch('https://financeai-proxy.ailteds01.workers.dev/',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':key},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:[part,{type:'text',text:prompt}]}]})
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:[part,{type:'text',text:prompt}]}]})
   });
   if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||'Erro HTTP '+res.status);}
   const d=await res.json();
