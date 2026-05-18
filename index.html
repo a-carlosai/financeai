@@ -149,7 +149,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
       <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="background:var(--blud);color:var(--blu);padding:2px 8px;border-radius:5px;font-weight:700;font-size:10px">NF</span><span style="color:var(--mut)" id="nc">0 tx</span></div>
     </div>
   </div>
-  <div class="sbot"><div class="sep"></div><button class="nb" onclick="openAdd()"><span class="ni">✏️</span>Lançar Manual</button></div>
+  <div class="sbot"><div class="sep"></div><button class="nb" onclick="go('config')"><span class="ni">🔑</span>Minha API Key</button><button class="nb" onclick="openAdd()"><span class="ni">✏️</span>Lançar Manual</button></div>
 </aside>
 
 <main class="main">
@@ -238,6 +238,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
   <div class="ph"><div><div class="pt">🎯 Metas Mensais</div><div class="ps">Limites de gasto por categoria</div></div><button class="btn bp" onclick="openMeta()">➕ Nova Meta</button></div>
   <div id="metasbody"></div>
 </div>
+
+<div class="page" id="page-config" style="max-width:480px;margin:60px auto">
+  <div style="text-align:center;margin-bottom:32px">
+    <div style="font-size:52px;margin-bottom:14px">🔑</div>
+    <div class="pt" style="font-size:22px">Configurar Chave de API</div>
+    <div class="ps" style="margin-top:8px;line-height:1.7">Cole sua chave da Anthropic abaixo.<br>Ela fica salva <strong>apenas no seu navegador</strong> — ninguém mais acessa.</div>
+  </div>
+  <div class="fg">
+    <label class="fl">Chave de API (sk-ant-...)</label>
+    <input class="fi" id="cfg-key" type="password" placeholder="sk-ant-api03-..." autocomplete="off" style="font-family:monospace;letter-spacing:.03em">
+  </div>
+  <button class="btn bp" onclick="saveKey()" style="width:100%;justify-content:center;padding:12px">✅ Salvar e Entrar</button>
+  <div style="margin-top:14px;font-size:12px;color:var(--mut);text-align:center">
+    Gere sua chave em <a href="https://console.anthropic.com" target="_blank" style="color:var(--acc)">console.anthropic.com</a> → API Keys
+  </div>
+</div>
 </main>
 </div>
 
@@ -280,7 +296,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const d=new Date();
   document.getElementById('ddate').textContent=d.toLocaleDateString('pt-BR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('mf').value=d.toISOString().split('T')[0];
-  update();setupDrag();
+  if(!localStorage.getItem('fi_apikey')){setTimeout(()=>go('config'),50);}else{update();}setupDrag();
   document.querySelectorAll('.mw').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')}));
 });
 
@@ -288,7 +304,7 @@ function go(p){
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
-  const map={dash:'Dashboard',comp:'Ler',hist:'Histórico',cats:'Categorias',metas:'Metas'};
+  const map={dash:'Dashboard',comp:'Ler',hist:'Histórico',cats:'Categorias',metas:'Metas',config:'API'};
   document.querySelectorAll('.nb').forEach(b=>{if(b.textContent.trim().includes(map[p]))b.classList.add('active')});
   update();
 }
@@ -330,61 +346,33 @@ async function proc(file){
 const toB64=f=>new Promise((r,j)=>{const rd=new FileReader();rd.onload=()=>r(rd.result.split(',')[1]);rd.onerror=()=>j(new Error('Falha'));rd.readAsDataURL(f)});
 
 async function callAI(b64,mime){
+  const key=localStorage.getItem('fi_apikey')||'';
+  if(!key){go('config');throw new Error('Configure sua chave de API primeiro');}
   const prompt=`Você é especialista em comprovantes financeiros brasileiros. Retorne SOMENTE JSON válido sem markdown:
-{"tipo":"pix|boleto|cartao|nota_fiscal|transferencia|outro","descricao":"descrição","valor":0.00,"data":"DD/MM/YYYY","hora":"HH:MM ou null","remetente":"nome ou null","destinatario":"nome ou null","banco":"banco ou null","chave_pix":"chave ou null","codigo_barras":"código ou null","estabelecimento":"nome ou null","categoria_sugerida":"Alimentação|Transporte|Moradia|Saúde|Lazer|Educação|Trabalho|Receita|Outros","tipo_movimento":"entrada|saida"}
-Use null para campos não encontrados.`;
-
-  const isPdf = mime === 'application/pdf';
-  const isImage = mime.startsWith('image/');
-
-  // Para PDFs: converte para imagem via canvas antes de enviar
-  // pois a API requer beta header para PDFs nativos
-  if (isPdf) {
-    // Tenta extrair texto do PDF como fallback via prompt de texto
-    const part = {
-      type: 'document',
-      source: { type: 'base64', media_type: 'application/pdf', data: b64 }
-    };
-    const headers = {
-      'Content-Type': 'application/json',
-      'anthropic-beta': 'pdfs-2024-09-25'
-    };
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: [part, { type: 'text', text: prompt }] }]
-      })
-    });
-    if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}));
-      throw new Error((errBody.error?.message || 'API ' + res.status));
-    }
-    const d = await res.json();
-    const txt = d.content.map(i => i.text || '').join('').replace(/```json|```/g, '').trim();
-    return JSON.parse(txt);
-  }
-
-  // Imagens: envio normal
-  const part = { type: 'image', source: { type: 'base64', media_type: mime, data: b64 } };
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      messages: [{ role: 'user', content: [part, { type: 'text', text: prompt }] }]
-    })
+{"tipo":"pix|boleto|cartao|nota_fiscal|transferencia|outro","descricao":"descricao do pagamento","valor":0.00,"data":"DD/MM/YYYY","hora":"HH:MM ou null","remetente":"nome ou null","destinatario":"nome ou null","banco":"banco ou null","chave_pix":"chave ou null","codigo_barras":"codigo ou null","estabelecimento":"nome ou null","categoria_sugerida":"Alimentacao|Transporte|Moradia|Saude|Lazer|Educacao|Trabalho|Receita|Outros","tipo_movimento":"entrada|saida"}
+Use null para campos nao encontrados.`;
+  const isPdf=mime==='application/pdf';
+  const part=isPdf
+    ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}}
+    :{type:'image',source:{type:'base64',media_type:mime,data:b64}};
+  const res=await fetch('https://financeai-proxy.ailteds01.workers.dev/',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:[part,{type:'text',text:prompt}]}]})
   });
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
-    throw new Error((errBody.error?.message || 'API ' + res.status));
-  }
-  const d = await res.json();
-  const txt = d.content.map(i => i.text || '').join('').replace(/```json|```/g, '').trim();
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||'Erro HTTP '+res.status);}
+  const d=await res.json();
+  if(d.error)throw new Error(d.error.message);
+  const txt=d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
   return JSON.parse(txt);
+}
+
+function saveKey(){
+  const k=document.getElementById('cfg-key').value.trim();
+  if(!k.startsWith('sk-ant-')){toast('⚠️ Chave inválida — deve começar com sk-ant-');return;}
+  localStorage.setItem('fi_apikey',k);
+  go('dash');
+  toast('✅ Chave salva! Bem-vindo ao FinanceAI 🎉');
 }
 
 function showR(data,b64,mime){
