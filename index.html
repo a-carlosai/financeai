@@ -128,9 +128,51 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .bdv{font-family:'Syne',sans-serif;font-size:18px;font-weight:800}.bdn{font-size:11px;color:var(--mut);margin-top:3px}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:99px}
 @media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{display:none}.srow{grid-template-columns:1fr 1fr}.dg{grid-template-columns:1fr}.main{padding:20px}}
+
+.lock-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px}
+.lock-card{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:40px 36px;width:340px;text-align:center}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin:20px 0}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:var(--bdr);transition:background .2s}
+.pin-dot.filled{background:var(--acc)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.pin-btn{background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:16px;font-size:18px;font-weight:600;color:var(--txt);cursor:pointer;transition:all .15s}
+.pin-btn:hover{background:var(--accg);border-color:var(--acc);color:var(--acc)}
+.pin-btn:active{transform:scale(.95)}
+.anual-row{display:grid;grid-template-columns:100px 1fr 1fr 1fr 1fr;gap:0;border-bottom:1px solid var(--bdr);padding:12px 22px;font-size:13px;align-items:center;transition:background .15s}
+.anual-row:hover{background:var(--surf2)}
+.anual-row:last-child{border-bottom:none}
+.anual-mes{font-weight:600;color:var(--txt)}
+.anual-val{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;text-align:right}
 </style>
 </head>
 <body>
+<!-- LOCK SCREEN -->
+<div class="lock-screen" id="lock-screen" style="display:none">
+  <div class="lock-card">
+    <div style="font-size:40px;margin-bottom:10px">🔐</div>
+    <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:4px">FinanceAI</div>
+    <div style="font-size:13px;color:var(--mut);margin-bottom:4px" id="lock-msg">Digite seu PIN</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-btn" onclick="pinClear()" style="font-size:13px;color:var(--mut)">⌫</button>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn" onclick="pinSubmit()" style="background:var(--accg);border-color:var(--acc);color:var(--acc);font-size:13px">OK</button>
+    </div>
+    <div id="pin-hint" style="margin-top:14px;font-size:11px;color:var(--mut)"></div>
+  </div>
+</div>
 <div class="layout">
 <aside class="sidebar">
   <div class="logo"><div class="lmark">💸</div>FinanceAI</div>
@@ -138,6 +180,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
   <button class="nb" onclick="go('comp')"><span class="ni">📎</span>Ler Comprovante</button>
   <button class="nb" onclick="go('hist')"><span class="ni">📋</span>Histórico</button>
   <button class="nb" onclick="go('cats')"><span class="ni">🏷️</span>Categorias</button>
+  <button class="nb" onclick="go('anual')"><span class="ni">📈</span>Visão Anual</button>
+  <button class="nb" onclick="go('onedrive')"><span class="ni">☁️</span>OneDrive</button>
   <button class="nb" onclick="go('metas')"><span class="ni">🎯</span>Metas</button>
   <div class="sep"></div>
   <div style="padding:6px 12px">
@@ -149,7 +193,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
       <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="background:var(--blud);color:var(--blu);padding:2px 8px;border-radius:5px;font-weight:700;font-size:10px">NF</span><span style="color:var(--mut)" id="nc">0 tx</span></div>
     </div>
   </div>
-  <div class="sbot"><div class="sep"></div><button class="nb" onclick="go('config')"><span class="ni">🔑</span>Minha API Key</button><button class="nb" onclick="openAdd()"><span class="ni">✏️</span>Lançar Manual</button></div>
+  <div class="sbot"><div class="sep"></div><button class="nb" onclick="lockApp()"><span class="ni">🔒</span>Bloquear App</button><button class="nb" onclick="go('config')"><span class="ni">🔑</span>Minha API Key</button><button class="nb" onclick="openAdd()"><span class="ni">✏️</span>Lançar Manual</button></div>
 </aside>
 
 <main class="main">
@@ -262,6 +306,65 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
   <div id="metasbody"></div>
 </div>
 
+<!-- ANUAL -->
+<div class="page" id="page-anual">
+  <div class="ph"><div><div class="pt">📈 Visão Anual</div><div class="ps" id="anual-sub"></div></div>
+    <div style="display:flex;align-items:center;gap:0;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;overflow:hidden">
+      <button onclick="changeYear(-1)" style="background:none;border:none;color:var(--mut);cursor:pointer;padding:8px 14px;font-size:18px" onmouseover="this.style.color='var(--txt)'" onmouseout="this.style.color='var(--mut)'">‹</button>
+      <span id="year-label" style="font-size:14px;font-weight:700;color:var(--txt);min-width:56px;text-align:center"></span>
+      <button onclick="changeYear(1)" id="btn-next-year" style="background:none;border:none;color:var(--mut);cursor:pointer;padding:8px 14px;font-size:18px" onmouseover="this.style.color='var(--txt)'" onmouseout="this.style.color='var(--mut)'">›</button>
+    </div>
+  </div>
+  <!-- cards anuais -->
+  <div class="srow" style="grid-template-columns:repeat(4,1fr)">
+    <div class="sc g"><div class="si" style="background:var(--grnd)">💰</div><div class="sl">Saldo do Ano</div><div class="sv p" id="ay-saldo">R$ 0,00</div></div>
+    <div class="sc r"><div class="si" style="background:var(--redd)">📤</div><div class="sl">Total Gasto</div><div class="sv n" id="ay-gasto">R$ 0,00</div></div>
+    <div class="sc v"><div class="si" style="background:var(--accg)">📥</div><div class="sl">Total Recebido</div><div class="sv" style="color:var(--acc)" id="ay-receita">R$ 0,00</div></div>
+    <div class="sc b"><div class="si" style="background:var(--blud)">📋</div><div class="sl">Transações</div><div class="sv" style="color:var(--blu)" id="ay-count">0</div></div>
+  </div>
+  <!-- gráfico barras mês a mês -->
+  <div class="pnl" style="margin-bottom:20px">
+    <div class="ph2"><div class="pt2"><span class="dot" style="background:var(--acc)"></span>Gastos e Receitas por Mês</div></div>
+    <div style="padding:20px"><canvas id="chart-anual" height="100"></canvas></div>
+  </div>
+  <!-- tabela por mês -->
+  <div class="pnl" style="overflow:hidden">
+    <div class="ph2"><div class="pt2"><span class="dot" style="background:var(--yel)"></span>Resumo Mensal</div></div>
+    <div id="anual-table"></div>
+  </div>
+</div>
+
+<!-- ONEDRIVE -->
+<div class="page" id="page-onedrive">
+  <div class="ph"><div><div class="pt">☁️ OneDrive</div><div class="ps">Importe comprovantes direto da sua pasta compartilhada</div></div></div>
+  <!-- config link -->
+  <div class="pnl" style="margin-bottom:20px;padding:24px">
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:6px">🔗 Link da Pasta Compartilhada</div>
+    <div style="font-size:12.5px;color:var(--mut);margin-bottom:14px">No OneDrive, abra a pasta → clique em "Compartilhar" → "Copiar link" → cole abaixo</div>
+    <div style="display:flex;gap:10px">
+      <input class="fi" id="od-link" placeholder="https://onedrive.live.com/..." style="flex:1">
+      <button class="btn bp" onclick="saveODLink()">Salvar</button>
+    </div>
+    <div id="od-saved-info" style="margin-top:10px;font-size:12px;color:var(--grn);display:none"></div>
+  </div>
+  <!-- instrucoes -->
+  <div class="pnl" style="padding:24px;margin-bottom:20px">
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:14px">📋 Como obter o link correto</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:12px;align-items:flex-start"><div style="width:26px;height:26px;border-radius:50%;background:var(--accg);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">1</div><div style="font-size:13.5px;color:var(--mut);line-height:1.6">Acesse <strong style="color:var(--txt)">onedrive.live.com</strong> e navegue até a pasta com seus comprovantes</div></div>
+      <div style="display:flex;gap:12px;align-items:flex-start"><div style="width:26px;height:26px;border-radius:50%;background:var(--accg);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">2</div><div style="font-size:13.5px;color:var(--mut);line-height:1.6">Clique com botão direito na pasta → <strong style="color:var(--txt)">Compartilhar</strong> → <strong style="color:var(--txt)">Copiar link</strong></div></div>
+      <div style="display:flex;gap:12px;align-items:flex-start"><div style="width:26px;height:26px;border-radius:50%;background:var(--accg);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">3</div><div style="font-size:13.5px;color:var(--mut);line-height:1.6">Certifique-se que o link está como <strong style="color:var(--txt)">"Qualquer pessoa com o link pode ver"</strong></div></div>
+      <div style="display:flex;gap:12px;align-items:flex-start"><div style="width:26px;height:26px;border-radius:50%;background:var(--accg);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">4</div><div style="font-size:13.5px;color:var(--mut);line-height:1.6">Cole o link acima e clique em <strong style="color:var(--txt)">Salvar</strong>. Depois use o botão abaixo para importar</div></div>
+    </div>
+  </div>
+  <!-- acao -->
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+    <button class="btn bp" onclick="importarOneDrive()" style="padding:12px 24px">☁️ Importar Comprovantes do OneDrive</button>
+    <button class="btn bg" onclick="go('comp')" style="padding:12px 24px">📁 Carregar do Computador</button>
+  </div>
+  <div id="od-status" style="margin-top:16px;font-size:13px;color:var(--mut);line-height:1.7"></div>
+</div>
+
 <div class="page" id="page-config" style="max-width:480px;margin:60px auto">
   <div style="text-align:center;margin-bottom:32px">
     <div style="font-size:52px;margin-bottom:14px">🔑</div>
@@ -343,7 +446,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const d=new Date();
   document.getElementById('ddate').textContent=d.toLocaleDateString('pt-BR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('mf').value=d.toISOString().split('T')[0];
-  updMonthLabel();document.getElementById('btn-next-month').style.opacity='0.3';document.getElementById('btn-next-month').style.pointerEvents='none';if(!localStorage.getItem('fi_apikey')){setTimeout(()=>go('config'),50);}else{update();}setupDrag();
+  updMonthLabel();document.getElementById('btn-next-month').style.opacity='0.3';document.getElementById('btn-next-month').style.pointerEvents='none';selYear=new Date().getFullYear();if(!localStorage.getItem('fi_apikey')){setTimeout(()=>go('config'),50);}else{update();}setupDrag();const savedLink=localStorage.getItem('fi_od_link');if(savedLink){document.getElementById('od-link').value=savedLink;document.getElementById('od-saved-info').style.display='block';document.getElementById('od-saved-info').textContent='✅ Link salvo: '+savedLink.substring(0,60)+'...';}initPin();
   document.querySelectorAll('.mw').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')}));
 });
 
@@ -351,7 +454,8 @@ function go(p){
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
-  const map={dash:'Dashboard',comp:'Ler',hist:'Histórico',cats:'Categorias',metas:'Metas',config:'API'};
+  const map={dash:'Dashboard',comp:'Ler',hist:'Histórico',cats:'Categorias',anual:'Anual',onedrive:'OneDrive',metas:'Metas',config:'API'};
+  if(p==='anual')setTimeout(rAnual,50);
   document.querySelectorAll('.nb').forEach(b=>{if(b.textContent.trim().includes(map[p]))b.classList.add('active')});
   update();
 }
@@ -633,7 +737,212 @@ function renderMetas(){
   }).join('');
 }
 
+// ═══ PIN / LOCK ═══
+let pinBuffer='';
+let pinMode='check'; // 'check' | 'set' | 'confirm'
+let pinConfirmBuffer='';
+
+function initPin(){
+  const storedPin=localStorage.getItem('fi_pin');
+  if(storedPin){
+    // tem PIN: mostra lock screen
+    document.getElementById('lock-screen').style.display='flex';
+    document.getElementById('layout').style.display='none';
+    pinMode='check';
+    document.getElementById('lock-msg').textContent='Digite seu PIN para entrar';
+    document.getElementById('pin-hint').textContent='';
+  } else {
+    // sem PIN: sugere criar
+    document.getElementById('pin-hint') && (document.getElementById('pin-hint').textContent='');
+  }
+}
+
+function lockApp(){
+  if(!localStorage.getItem('fi_pin')){
+    // ainda sem PIN: inicia criação
+    document.getElementById('lock-screen').style.display='flex';
+    document.querySelector('.layout').style.display='none';
+    pinMode='set';
+    pinBuffer='';
+    document.getElementById('lock-msg').textContent='Crie um PIN de 4 dígitos';
+    document.getElementById('pin-hint').textContent='Você usará este PIN para entrar no app em qualquer dispositivo';
+    updDots();
+    return;
+  }
+  document.getElementById('lock-screen').style.display='flex';
+  document.querySelector('.layout').style.display='none';
+  pinMode='check';pinBuffer='';
+  document.getElementById('lock-msg').textContent='Digite seu PIN';
+  updDots();
+}
+
+function pinPress(d){
+  if(pinBuffer.length>=4)return;
+  pinBuffer+=d;updDots();
+  if(pinBuffer.length===4&&pinMode==='check')pinSubmit();
+}
+
+function pinClear(){pinBuffer=pinBuffer.slice(0,-1);updDots();}
+
+function updDots(){
+  for(let i=0;i<4;i++){
+    document.getElementById('pd'+i).className='pin-dot'+(i<pinBuffer.length?' filled':'');
+  }
+}
+
+function pinSubmit(){
+  if(pinMode==='check'){
+    const stored=localStorage.getItem('fi_pin');
+    if(pinBuffer===stored){
+      document.getElementById('lock-screen').style.display='none';
+      document.querySelector('.layout').style.display='grid';
+      pinBuffer='';updDots();
+    } else {
+      document.getElementById('lock-msg').textContent='PIN incorreto. Tente novamente.';
+      document.getElementById('lock-msg').style.color='var(--red)';
+      pinBuffer='';updDots();
+      setTimeout(()=>{
+        document.getElementById('lock-msg').textContent='Digite seu PIN';
+        document.getElementById('lock-msg').style.color='';
+      },1500);
+    }
+  } else if(pinMode==='set'){
+    if(pinBuffer.length<4){toast('⚠️ Digite 4 dígitos');return;}
+    pinConfirmBuffer=pinBuffer;pinBuffer='';
+    pinMode='confirm';
+    document.getElementById('lock-msg').textContent='Confirme seu PIN';
+    document.getElementById('pin-hint').textContent='';
+    updDots();
+  } else if(pinMode==='confirm'){
+    if(pinBuffer===pinConfirmBuffer){
+      localStorage.setItem('fi_pin',pinBuffer);
+      document.getElementById('lock-screen').style.display='none';
+      document.querySelector('.layout').style.display='grid';
+      pinBuffer='';pinMode='check';updDots();
+      toast('🔐 PIN criado com sucesso!');
+    } else {
+      document.getElementById('lock-msg').textContent='PINs diferentes. Tente novamente.';
+      document.getElementById('lock-msg').style.color='var(--red)';
+      pinBuffer='';pinConfirmBuffer='';pinMode='set';updDots();
+      setTimeout(()=>{
+        document.getElementById('lock-msg').textContent='Crie um PIN de 4 dígitos';
+        document.getElementById('lock-msg').style.color='';
+      },1500);
+    }
+  }
+}
+
+// Suporte teclado numérico
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('lock-screen').style.display==='flex'){
+    if(e.key>='0'&&e.key<='9')pinPress(e.key);
+    else if(e.key==='Backspace')pinClear();
+    else if(e.key==='Enter')pinSubmit();
+  }
+});
+
+// ═══ VISÃO ANUAL ═══
+let selYear=new Date().getFullYear();
+let chartAnual=null;
+
+function changeYear(d){
+  selYear+=d;
+  const cur=new Date().getFullYear();
+  document.getElementById('btn-next-year').style.opacity=selYear>=cur?'0.3':'1';
+  document.getElementById('btn-next-year').style.pointerEvents=selYear>=cur?'none':'auto';
+  rAnual();
+}
+
+function rAnual(){
+  const cur=new Date().getFullYear();
+  document.getElementById('year-label').textContent=selYear;
+  document.getElementById('btn-next-year').style.opacity=selYear>=cur?'0.3':'1';
+  document.getElementById('btn-next-year').style.pointerEvents=selYear>=cur?'none':'auto';
+  document.getElementById('anual-sub').textContent='Resumo completo de '+selYear;
+
+  const doAno=txs.filter(t=>new Date(t.data).getFullYear()===selYear);
+  const gastoAno=doAno.filter(t=>t.tipo==='saida').reduce((s,t)=>s+t.valor,0);
+  const recAno=doAno.filter(t=>t.tipo==='entrada').reduce((s,t)=>s+t.valor,0);
+  document.getElementById('ay-saldo').textContent=fmt(recAno-gastoAno);
+  document.getElementById('ay-saldo').className='sv '+(recAno>=gastoAno?'p':'n');
+  document.getElementById('ay-gasto').textContent=fmt(gastoAno);
+  document.getElementById('ay-receita').textContent=fmt(recAno);
+  document.getElementById('ay-count').textContent=doAno.length;
+
+  const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const gs=[],rs=[];
+  for(let m=0;m<12;m++){
+    const mo=doAno.filter(t=>new Date(t.data).getMonth()===m);
+    gs.push(mo.filter(t=>t.tipo==='saida').reduce((s,t)=>s+t.valor,0));
+    rs.push(mo.filter(t=>t.tipo==='entrada').reduce((s,t)=>s+t.valor,0));
+  }
+
+  if(chartAnual)chartAnual.destroy();
+  const ctx=document.getElementById('chart-anual').getContext('2d');
+  chartAnual=new Chart(ctx,{
+    type:'bar',
+    data:{labels:meses,datasets:[
+      {label:'Entradas',data:rs,backgroundColor:'rgba(0,212,160,.7)',borderRadius:6},
+      {label:'Gastos',data:gs,backgroundColor:'rgba(255,69,96,.7)',borderRadius:6}
+    ]},
+    options:{plugins:{legend:{labels:{color:'#eeeef5',font:{size:12}}}},scales:{x:{ticks:{color:'#5a5a72'},grid:{color:'#252636'}},y:{ticks:{color:'#5a5a72',callback:v=>'R$'+v.toLocaleString('pt-BR')},grid:{color:'#252636'}}},responsive:true}
+  });
+
+  // tabela mensal
+  const tab=document.getElementById('anual-table');
+  const header='<div class="anual-row" style="border-bottom:2px solid var(--bdr);opacity:.6"><div class="anual-mes">Mês</div><div class="anual-val">Entradas</div><div class="anual-val">Gastos</div><div class="anual-val">Saldo</div><div class="anual-val">Tx</div></div>';
+  const rows=meses.map((mes,i)=>{
+    const saldo=rs[i]-gs[i];
+    const col=saldo>=0?'var(--grn)':'var(--red)';
+    const mo=doAno.filter(t=>new Date(t.data).getMonth()===i);
+    return `<div class="anual-row"><div class="anual-mes">${mes}</div><div class="anual-val" style="color:var(--grn)">${fmt(rs[i])}</div><div class="anual-val" style="color:var(--red)">${fmt(gs[i])}</div><div class="anual-val" style="color:${col}">${fmt(saldo)}</div><div class="anual-val" style="color:var(--mut)">${mo.length}</div></div>`;
+  }).join('');
+  tab.innerHTML=header+rows;
+}
+
+// ═══ ONEDRIVE ═══
+function saveODLink(){
+  const link=document.getElementById('od-link').value.trim();
+  if(!link){toast('⚠️ Cole o link do OneDrive');return;}
+  if(!link.includes('onedrive')){toast('⚠️ Link inválido — deve ser do OneDrive');return;}
+  localStorage.setItem('fi_od_link',link);
+  document.getElementById('od-saved-info').style.display='block';
+  document.getElementById('od-saved-info').textContent='✅ Link salvo: '+link.substring(0,60)+'...';
+  toast('✅ Link do OneDrive salvo!');
+}
+
+async function importarOneDrive(){
+  const link=localStorage.getItem('fi_od_link');
+  if(!link){toast('⚠️ Configure o link do OneDrive primeiro');return;}
+  if(!localStorage.getItem('fi_apikey')){go('config');return;}
+
+  const status=document.getElementById('od-status');
+  status.innerHTML='⏳ Abrindo sua pasta do OneDrive para seleção de arquivos...';
+
+  // OneDrive compartilhado tem restrição de CORS para download direto.
+  // A abordagem mais confiável: abrimos o OneDrive numa nova aba e
+  // o usuário baixa/arrasta os arquivos para o carregador da pasta.
+  status.innerHTML=`
+    <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:14px;padding:20px;margin-top:4px">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:10px">📋 Como importar do OneDrive</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:13px;color:var(--mut)"><strong style="color:var(--txt)">Opção 1 — Mais fácil:</strong> Acesse a pasta no OneDrive, selecione os comprovantes, baixe-os e use o botão "Carregar Pasta" na tela de comprovantes.</div>
+        <div style="font-size:13px;color:var(--mut)"><strong style="color:var(--txt)">Opção 2 — Sincronizado:</strong> Instale o app OneDrive no seu PC. A pasta aparece como uma pasta local — use o botão "Carregar Pasta" direto dela.</div>
+        <div style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap">
+          <a href="${link}" target="_blank" class="btn bp" style="text-decoration:none;font-size:13px;padding:9px 18px">☁️ Abrir Pasta no OneDrive</a>
+          <button class="btn bg" onclick="go('comp')" style="font-size:13px">📁 Ir para Carregar Pasta</button>
+        </div>
+        <div style="font-size:11.5px;color:var(--mut);margin-top:4px;padding:10px;background:var(--surf2);border-radius:8px">
+          💡 <strong>Dica:</strong> Navegadores bloqueiam o download direto de arquivos de outros sites (CORS). Por isso, a importação automática requer o app OneDrive instalado ou baixar os arquivos manualmente.
+        </div>
+      </div>
+    </div>`;
+}
+
+// ═══ GO: suporte anual e onedrive ═══
+
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>{t.style.display='none'},3000)}
 </script>
+</div>
 </body>
 </html>
